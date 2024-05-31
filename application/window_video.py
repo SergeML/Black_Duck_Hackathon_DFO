@@ -12,6 +12,16 @@ class VideoWindow(QMainWindow):
         self.setWindowTitle("Camera")
         self.file = cv2.VideoCapture(path)
 
+        original_fps = self.file.get(cv2.CAP_PROP_FPS)
+
+        frame_count = int(self.file.get(cv2.CAP_PROP_FRAME_COUNT))
+        duration = frame_count / original_fps
+
+        self.mins, self.secs = divmod(duration, 60)
+
+        print(original_fps)
+        self.time = 1000/round(original_fps)
+
         self.central_widget = QWidget(self)
         self.setCentralWidget(self.central_widget)
 
@@ -25,13 +35,38 @@ class VideoWindow(QMainWindow):
         self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.setRange(0, int(self.file.get(cv2.CAP_PROP_FRAME_COUNT)))
         self.slider.sliderMoved.connect(self.set_position)
-        self.slider.setEnabled(False)
+        self.slider.setEnabled(True)
+
+        self.slider.setStyleSheet("""
+                    QSlider::handle:horizontal {
+                        background-color: #5c5c5c;
+                        border: 1px solid #5c5c5c;
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 2px;
+                        margin: -6px 0; 
+                    }
+                    QSlider::groove:horizontal {
+                        background: #bcbcbc;
+                        height: 4px;
+                    }
+                    QSlider::sub-page:horizontal {
+                        background: #5c5c5c;
+                    }
+                """)
+
+        self.timer_label = QLabel(self)
+        self.timer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.timer_label.setFixedSize(100, 30)
+        self.update_timer(0)
 
         self.time_input = QLineEdit(self)
         self.time_input.setPlaceholderText("Enter time in seconds")
 
         self.jump_button = QPushButton("Jump")
         self.jump_button.clicked.connect(self.jump_to_time)
+
+
 
         time_layout = QHBoxLayout()
         time_layout.addWidget(self.time_input)
@@ -40,6 +75,7 @@ class VideoWindow(QMainWindow):
         control_layout = QHBoxLayout()
         control_layout.addWidget(self.play_button)
         control_layout.addWidget(self.slider)
+        control_layout.addWidget(self.timer_label)
 
         layout = QVBoxLayout(self.central_widget)
         layout.addWidget(self.image_label)
@@ -48,16 +84,14 @@ class VideoWindow(QMainWindow):
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
-        self.timer.start(33)
+        self.timer.start(self.time)
 
         self.is_paused = False
         self.first = True
 
     def update_frame(self):
-
         if not self.is_paused:
             ret, frame = self.file.read()
-
             if ret:
                 frame = cv2.resize(frame, (640, 480))
                 rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -70,6 +104,7 @@ class VideoWindow(QMainWindow):
 
                 current_frame = int(self.file.get(cv2.CAP_PROP_POS_FRAMES))
                 self.slider.setValue(current_frame)
+                self.update_timer(current_frame / self.file.get(cv2.CAP_PROP_FPS))
 
         if self.first:
             self.is_paused = True
@@ -79,7 +114,7 @@ class VideoWindow(QMainWindow):
         if self.is_paused:
             self.is_paused = False
             self.play_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPause))
-            self.timer.start(33)
+            self.timer.start(self.time)
             self.slider.setEnabled(False)
         else:
             self.is_paused = True
@@ -107,6 +142,11 @@ class VideoWindow(QMainWindow):
         self.first = True
         self.is_paused = False
         self.update_frame()
+
+    def update_timer(self, seconds):
+        mins, secs = divmod(seconds, 60)
+        time_str = f'{int(mins):02}:{int(secs):02}/{int(self.mins):02}:{int(self.secs):02}'
+        self.timer_label.setText(time_str)
 
 
 
