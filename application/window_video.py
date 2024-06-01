@@ -9,17 +9,13 @@ class VideoWindow(QMainWindow):
     def __init__(self, path):
         super().__init__()
 
-        self.setWindowTitle("Camera")
         self.file = cv2.VideoCapture(path)
 
         original_fps = self.file.get(cv2.CAP_PROP_FPS)
-
         frame_count = int(self.file.get(cv2.CAP_PROP_FRAME_COUNT))
         duration = frame_count / original_fps
 
         self.mins, self.secs = divmod(duration, 60)
-
-        print(original_fps)
         self.time = 1000/round(original_fps)
 
         self.central_widget = QWidget(self)
@@ -34,7 +30,7 @@ class VideoWindow(QMainWindow):
 
         self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.setRange(0, int(self.file.get(cv2.CAP_PROP_FRAME_COUNT)))
-        self.slider.sliderMoved.connect(self.set_position)
+        self.slider.sliderReleased.connect(self.set_position)
         self.slider.setEnabled(True)
 
         self.slider.setStyleSheet("""
@@ -65,8 +61,6 @@ class VideoWindow(QMainWindow):
 
         self.jump_button = QPushButton("Jump")
         self.jump_button.clicked.connect(self.jump_to_time)
-
-
 
         time_layout = QHBoxLayout()
         time_layout.addWidget(self.time_input)
@@ -122,17 +116,24 @@ class VideoWindow(QMainWindow):
             self.timer.stop()
             self.slider.setEnabled(True)
 
-    def set_position(self, position):
+    def set_position(self):
+        print('trigered')
+        position = self.slider.value()
         self.file.set(cv2.CAP_PROP_POS_FRAMES, position)
+        self.first = True
+        self.is_paused = False
+
         self.update_frame()
-        if not self.is_paused:
-            self.toggle_play()
 
     def jump_to_time(self, timestamp=None):
         if timestamp:
             time_in_seconds = float(timestamp)
         else:
-            time_in_seconds = float(self.time_input.text())
+            try:
+                time_in_seconds = float(self.time_input.text())
+            except ValueError:
+                print('Error')
+                return
 
         print(f"Current timestamp: {time_in_seconds}")
 
@@ -147,10 +148,3 @@ class VideoWindow(QMainWindow):
         mins, secs = divmod(seconds, 60)
         time_str = f'{int(mins):02}:{int(secs):02}/{int(self.mins):02}:{int(self.secs):02}'
         self.timer_label.setText(time_str)
-
-
-
-
-
-
-

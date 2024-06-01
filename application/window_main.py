@@ -3,21 +3,23 @@ from PyQt6.QtCore import QSize
 
 from window_video import VideoWindow
 from window_table import TableWindow
+from window_progress import ProgressWindow
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        self.file_path = None
+        self.violation = None
+        self.video_window = None
+
         self.setWindowTitle("Automation of detection technological violations")
-        # self.setFixedSize(QSize(1000, 600))
         size = QSize(200, 60)
 
         self.stub_image = QLabel(self)
         self.stub_image.setFixedSize(640, 480)
         self.stub_image.setStyleSheet("background-color: #BDBDBD;")
-
-        self.camera_window = None
 
         self.button_1 = QPushButton("Choice Video File")
         self.button_1.clicked.connect(self.choice_video_file)
@@ -28,7 +30,7 @@ class MainWindow(QMainWindow):
         self.button_2.setFixedSize(size)
         self.button_2.setEnabled(False)
 
-        self.button_3 = QPushButton("Show Result")
+        self.button_3 = QPushButton("Report")
         self.button_3.clicked.connect(self.show_result)
         self.button_3.setFixedSize(size)
         self.button_3.setEnabled(False)
@@ -45,7 +47,6 @@ class MainWindow(QMainWindow):
 
         vertical_line = QFrame()
         vertical_line.setFrameShape(QFrame.Shape.VLine)
-        # vertical_line.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.main_layout = QHBoxLayout()
         self.main_layout.addWidget(self.stub_image)
@@ -62,30 +63,40 @@ class MainWindow(QMainWindow):
         self.file_path, _ = file_dialog.getOpenFileName(self, "Select Video File", "", "Video Files (*.mp4 *.avi)")
 
         if self.file_path:
-            self.main_layout.replaceWidget(self.camera_window, self.stub_image)
-            if self.camera_window:
-                self.camera_window.deleteLater()
+            self.main_layout.replaceWidget(self.video_window, self.stub_image)
+            if self.video_window:
+                self.video_window.deleteLater()
 
-            self.camera_window = VideoWindow(self.file_path)
-            self.camera_window.show()
+            self.video_window = VideoWindow(self.file_path)
+            self.video_window.show()
 
-            self.main_layout.replaceWidget(self.stub_image, self.camera_window)
+            self.main_layout.replaceWidget(self.stub_image, self.video_window)
             self.stub_image.hide()
             self.button_2.setEnabled(True)
 
     def detection(self):
         #violation = model.inference(self.file_path)
 
-        print('Done')
+        window = ProgressWindow()
+        window.signal.connect(self.get_violation)
+        window.exec()
 
-        self.violation = {
-            10: 'violation type 0',
-            54: 'violation type 1',
-            175: 'violation type 2',
-            200: 'violation type 1',
-        }
+    def get_violation(self, violation=None):
+        if violation == 'trigger':
+            self.violation = {
+                10: 'violation type 0',
+                54: 'violation type 1',
+                175: 'violation type 2',
+                200: 'violation type 1',
+            }
+        else:
+            self.violation = None
 
-        self.button_3.setEnabled(True)
+        if self.violation:
+            self.button_3.setEnabled(True)
+            QMessageBox.information(self, 'Message', 'Violations were found. Details in the report')
+        else:
+            QMessageBox.information(self, 'Message', 'No violations were found')
 
     def show_result(self):
         window = TableWindow(self.violation)
@@ -94,20 +105,20 @@ class MainWindow(QMainWindow):
 
     def jump(self, key):
         timestamp = key
-        self.camera_window.jump_to_time(timestamp)
+        self.video_window.jump_to_time(timestamp)
 
     def test(self):
-        self.file_path = 'C:/HAK/train/VID_20240304_095112.mp4'
+        self.file_path = 'C:/HAK/train/0000000_00000020240221082923_0001_IMP (1).MP4'
 
         if self.file_path:
-            self.main_layout.replaceWidget(self.camera_window, self.stub_image)
-            if self.camera_window:
-                self.camera_window.deleteLater()
+            self.main_layout.replaceWidget(self.video_window, self.stub_image)
+            if self.video_window:
+                self.video_window.deleteLater()
 
-            self.camera_window = VideoWindow(self.file_path)
-            self.camera_window.show()
+            self.video_window = VideoWindow(self.file_path)
+            self.video_window.show()
 
-            self.main_layout.replaceWidget(self.stub_image, self.camera_window)
+            self.main_layout.replaceWidget(self.stub_image, self.video_window)
             self.stub_image.hide()
             self.button_2.setEnabled(True)
 
