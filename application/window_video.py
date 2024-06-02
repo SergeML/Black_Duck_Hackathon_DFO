@@ -117,7 +117,6 @@ class VideoWindow(QMainWindow):
             self.slider.setEnabled(True)
 
     def set_position(self):
-        print('trigered')
         position = self.slider.value()
         self.file.set(cv2.CAP_PROP_POS_FRAMES, position)
         self.first = True
@@ -132,7 +131,6 @@ class VideoWindow(QMainWindow):
             try:
                 time_in_seconds = float(self.time_input.text())
             except ValueError:
-                print('Error')
                 return
 
         print(f"Current timestamp: {time_in_seconds}")

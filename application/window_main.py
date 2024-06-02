@@ -35,15 +35,10 @@ class MainWindow(QMainWindow):
         self.button_3.setFixedSize(size)
         self.button_3.setEnabled(False)
 
-        self.button_4 = QPushButton("test button")
-        self.button_4.setFixedSize(size)
-        self.button_4.clicked.connect(self.test)
-
         buttons_layout = QVBoxLayout()
         buttons_layout.addWidget(self.button_1)
         buttons_layout.addWidget(self.button_2)
         buttons_layout.addWidget(self.button_3)
-        buttons_layout.addWidget(self.button_4)
 
         vertical_line = QFrame()
         vertical_line.setFrameShape(QFrame.Shape.VLine)
@@ -63,6 +58,7 @@ class MainWindow(QMainWindow):
         self.file_path, _ = file_dialog.getOpenFileName(self, "Select Video File", "", "Video Files (*.mp4 *.avi)")
 
         if self.file_path:
+            self.button_3.setEnabled(False)
             self.main_layout.replaceWidget(self.video_window, self.stub_image)
             if self.video_window:
                 self.video_window.deleteLater()
@@ -75,64 +71,23 @@ class MainWindow(QMainWindow):
             self.button_2.setEnabled(True)
 
     def detection(self):
-        #violation = model.inference(self.file_path)
-
-        window = ProgressWindow()
+        window = ProgressWindow(self)
         window.signal.connect(self.get_violation)
         window.exec()
 
     def get_violation(self, violation=None):
-        if violation == 'trigger':
-            self.violation = {
-                10: 'violation type 0',
-                54: 'violation type 1',
-                175: 'violation type 2',
-                200: 'violation type 1',
-            }
-        else:
-            self.violation = None
-
-        if self.violation:
+        self.violation = violation
+        if self.violation is not None:
             self.button_3.setEnabled(True)
             QMessageBox.information(self, 'Message', 'Violations were found. Details in the report')
         else:
             QMessageBox.information(self, 'Message', 'No violations were found')
 
     def show_result(self):
-        window = TableWindow(self.violation)
+        window = TableWindow(self.violation, self)
         window.signal.connect(self.jump)
         window.show()
 
     def jump(self, key):
         timestamp = key
         self.video_window.jump_to_time(timestamp)
-
-    def test(self):
-        self.file_path = 'C:/HAK/train/0000000_00000020240221082923_0001_IMP (1).MP4'
-
-        if self.file_path:
-            self.main_layout.replaceWidget(self.video_window, self.stub_image)
-            if self.video_window:
-                self.video_window.deleteLater()
-
-            self.video_window = VideoWindow(self.file_path)
-            self.video_window.show()
-
-            self.main_layout.replaceWidget(self.stub_image, self.video_window)
-            self.stub_image.hide()
-            self.button_2.setEnabled(True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
